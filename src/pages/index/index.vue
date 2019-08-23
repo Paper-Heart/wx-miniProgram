@@ -2,7 +2,10 @@
   <div class="indexContainer">
     <img v-if="isShow" :src="userInfo.avatarUrl" alt class="indexImage" />
     <Button v-else open-type="getUserInfo" @getuserinfo="getUserInfo" class="btn">点击获取用户信息</Button>
-    <p class="userName">Hello {{userInfo.nickName}}</p>
+    <p class="userName">
+      Hello 
+      <span>{{userInfo.nickName}}</span>
+      </p>
     <div class="goMp" @tap="toDetail">
       <p>开启小程序之旅</p>
     </div>
@@ -42,7 +45,7 @@ export default {
       }
     },
     toDetail(){
-      wx.navigateTo({
+      wx.switchTab({
         url:"/pages/list/main"
       })
     }
@@ -67,8 +70,12 @@ page {
 }
 .indexContainer .userName {
   font-size: 45rpx;
-  font-weight: bold;
   margin: 70rpx 0;
+}
+.indexContainer .userName span{
+  color: lightcyan;
+  font-weight: bold;
+  font-size: 60rpx;
 }
 .indexContainer .goMp {
   width: 220rpx;

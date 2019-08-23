@@ -1,43 +1,115 @@
 <template>
   <div class="detailContainer">
-    <img class="detail_header" :src="detailObj.detail_img" alt />
+    <img class="detail_header" :src="isMusicPlay?detailObj.music.coverImgUrl:detailObj.detail_img" alt />
+    <img class="music_img" @click="musicPlay" :src="isMusicPlay?'/static/images/music/music-start.png':'/static/images/music/music-stop.png'" alt />
     <div class="avatar_date">
-      <img class="detail_img" src="/static/images/icon/chat.png" alt />
-      <span>新华社</span>
+      <img class="detail_img" :src="detailObj.avatar" alt />
+      <span>{{detailObj.author}}</span>
       <span>发布于</span>
-      <span>2019</span>
+      <span>{{detailObj.date}}</span>
     </div>
-    <p class="company">侍子贤简介</p>
+    <p class="company">{{detailObj.title}}</p>
     <div class="collection_share_container">
       <div class="collection_share">
-        <img class="share_img" src="/static/images/icon/collection-anti.png" alt />
-        <img class="share_img" src="/static/images/icon/share-anti.png" alt />
+        <img
+          class="share_img"
+          @tap="changeCollection"
+          :src="isCollected?'/static/images/icon/collection.png':'/static/images/icon/collection-anti.png'"
+          alt
+        />
+        <img @tap="toShare" class="share_img" src="/static/images/icon/share-anti.png" alt />
       </div>
       <div class="line"></div>
     </div>
-    <Button open-type="share">转发此文章</Button>
-    <p class="content">一个非常牛笔的人</p>
+    <p class="content">{{detailObj.detail_content}}</p>
+    <Button open-type="share" class="detail_btn">转发此文章</Button>
   </div>
 </template>
 
 <script>
-import {mapState} from "vuex"
+import { mapState } from "vuex";
+import isPlayObj from "../../datas/isPlay"
 export default {
-    data(){
-        return{
-            detailObj:{}
-        }
-    },
-    beforeMount(){
-        this.index=this.$mp.query.index;
-    },
-    mounted(){
-        // console.log(this)
-        this.detailObj=this.listTmp[this.index]
-    },
-    computed:{
-        ...mapState(['listTmp'])
+  data() {
+    return {
+      detailObj: {},
+      isCollected: false, //标识是否被收藏
+      isMusicPlay:false   //标识音乐是否播放
+    };
+  },
+  beforeMount() {
+    this.index = this.$mp.query.index;
+    //本地预处理
+    let oldStorage = wx.getStorageSync("isCollected");
+    if (!oldStorage) {
+      //为空
+      wx.setStorage({
+        key: "isCollected",
+        data: {}
+      });
+    } else {
+      //用户缓存过
+      this.isCollected = oldStorage[this.index] ? true : false;
     }
+    isPlayObj.pageIndex===this.index && isPlayObj.isPlay?this.isMusicPlay=true:this.isMusicPlay=false;
+    //监听音乐的播放和暂停
+    wx.onBackgroundAudioPlay(()=>{
+      console.log("音乐播放");
+      this.isMusicPlay=true;
+      isPlayObj.pageIndex=this.index;
+      isPlayObj.isPlay=true;
+    })
+    wx.onBackgroundAudioPause(()=>{
+      console.log("音乐暂停");
+      this.isMusicPlay=false;
+      isPlayObj.isPlay=false; 
+    })
+  },
+  mounted() {
+    // console.log(this)
+    this.detailObj = this.listTmp[this.index];
+  },
+  computed: {
+    ...mapState(["listTmp"])
+  },
+  methods: {
+    changeCollection() {
+      let isCollected = !this.isCollected;
+      this.isCollected = isCollected;
+      let title = isCollected ? "收藏成功" : "取消收藏";
+      wx.showToast({
+        title,
+        icon: "success"
+      });
+      //读取之前本地缓存的状态（是否收藏）
+      let oldStorage = wx.getStorageSync("isCollected");
+      oldStorage[this.index] = isCollected;
+      //将本次的状态缓存到本地
+      wx.setStorage({
+        key: "isCollected",
+        data: oldStorage
+      });
+    },
+    musicPlay(){
+      let isMusicPlay=!this.isMusicPlay;
+      this.isMusicPlay=isMusicPlay;
+      let {dataUrl,title}=this.detailObj.music
+      if(isMusicPlay){
+        wx.playBackgroundAudio({
+          dataUrl,title
+        })
+      }else{
+        wx.pauseBackgroundAudio()
+      }
+    },
+    toShare(){
+       wx.showActionSheet({
+          itemList: [
+            '分享到朋友圈', '分享到微博', '分享给微信好友'
+          ]
+        })
+    }
+  }
 };
 </script>
 
@@ -101,5 +173,17 @@ export default {
   text-indent: 32rpx;
   letter-spacing: 3rpx;
   line-height: 50rpx;
+  margin-bottom: 50rpx;
+}
+.detail_btn {
+  color: grey;
+}
+.music_img {
+  width: 60rpx;
+  height: 60rpx;
+  position: absolute;
+  top: 200rpx;
+  left: 50%;
+  margin-left: -30rpx;
 }
 </style>
